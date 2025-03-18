@@ -184,7 +184,7 @@ app.get("/sessions", async (req: Request, res: Response) => {
         location: true,
         session_id: true,
         is_virtual: true,
-        event_name: true,
+        event_name: false,
         timezone: true,
         session_type: true,
         tracks: {
@@ -197,7 +197,7 @@ app.get("/sessions", async (req: Request, res: Response) => {
             speaker: true,
           },
         },
-        subSessions: true,
+        subSessions: false,
       },
     });
     res.json(sessions);

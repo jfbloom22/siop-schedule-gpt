@@ -101,6 +101,9 @@ components:
         timezone:
           type: string
           nullable: true
+        session_type:
+          type: string
+          nullable: true
         tracks:
           type: array
           items:
