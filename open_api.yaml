@@ -13,7 +13,7 @@ paths:
       tags:
         - sessions
       parameters:
-        - name: eventName
+        - name: event_name
           in: query
           description: Filter by event name
           required: false
@@ -26,13 +26,13 @@ paths:
           schema:
             type: string
             format: date
-        - name: trackId
+        - name: track_id
           in: query
           description: Filter by track ID
           required: false
           schema:
             type: integer
-        - name: speakerId
+        - name: speaker_id
           in: query
           description: Filter by speaker ID
           required: false
@@ -66,18 +66,18 @@ components:
       required:
         - id
         - name
-        - startTime
-        - endTime
+        - start_time
+        - end_time
         - date
       properties:
         id:
           type: integer
         name:
           type: string
-        startTime:
+        start_time:
           type: string
           format: time
-        endTime:
+        end_time:
           type: string
           format: time
         date:
@@ -89,13 +89,13 @@ components:
         description:
           type: string
           nullable: true
-        sessionId:
+        session_id:
           type: string
           nullable: true
-        isVirtual:
+        is_virtual:
           type: boolean
           default: false
-        eventName:
+        event_name:
           type: string
           nullable: true
         timezone:
@@ -137,12 +137,12 @@ components:
       type: object
       required:
         - id
-        - parentSessionId
+        - parent_session_id
         - name
       properties:
         id:
           type: integer
-        parentSessionId:
+        parent_session_id:
           type: integer
         name:
           type: string

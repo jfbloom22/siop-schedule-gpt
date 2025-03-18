@@ -58,7 +58,10 @@ app.post("/speakers", async (req: Request, res: Response) => {
     });
     res.json(speaker);
   } catch (error) {
-    res.status(400).json({ error: "Failed to create speaker" });
+    res.status(400).json({
+      error: "Failed to create speaker",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -79,14 +82,14 @@ app.get("/speakers", async (req: Request, res: Response) => {
 app.post("/sessions", async (req: Request, res: Response) => {
   const {
     name,
-    startTime,
-    endTime,
+    start_time,
+    end_time,
     date,
     location,
     description,
-    sessionId,
-    isVirtual,
-    eventName,
+    session_id,
+    is_virtual,
+    event_name,
     timezone,
     trackIds,
     speakerIds,
@@ -96,61 +99,104 @@ app.post("/sessions", async (req: Request, res: Response) => {
     const session = await prisma.session.create({
       data: {
         name,
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
+        start_time: new Date(start_time),
+        end_time: new Date(end_time),
         date: new Date(date),
         location,
         description,
-        sessionId,
-        isVirtual,
-        eventName,
+        session_id,
+        is_virtual,
+        event_name,
         timezone,
         tracks: {
-          connect: trackIds?.map((id: number) => ({ id })) || [],
+          create:
+            trackIds?.map((id: number) => ({
+              track: { connect: { id } },
+            })) || [],
         },
         speakers: {
-          connect: speakerIds?.map((id: number) => ({ id })) || [],
+          create:
+            speakerIds?.map((id: number) => ({
+              speaker: { connect: { id } },
+            })) || [],
         },
       },
       include: {
-        tracks: true,
-        speakers: true,
+        tracks: {
+          include: {
+            track: true,
+          },
+        },
+        speakers: {
+          include: {
+            speaker: true,
+          },
+        },
         subSessions: true,
       },
     });
     res.json(session);
   } catch (error) {
-    res.status(400).json({ error: "Failed to create session" });
+    console.error("Session creation error:", error);
+    res.status(400).json({
+      error: "Failed to create session",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
 /**
  * Endpoint to fetch all sessions with optional filters
- * @param {string} eventName - Filter by event name
+ * @param {string} event_name - Filter by event name
  * @param {string} date - Filter by date
- * @param {string} trackId - Filter by track ID
- * @param {string} speakerId - Filter by speaker ID
+ * @param {string} track_id - Filter by track ID
+ * @param {string} speaker_id - Filter by speaker ID
  * @returns {Session[]} - Filtered sessions
  */
 app.get("/sessions", async (req: Request, res: Response) => {
-  const { eventName, date, trackId, speakerId } = req.query;
+  const { event_name, date, track_id, speaker_id } = req.query;
   const where: any = {};
 
-  if (eventName) where.eventName = eventName;
+  if (event_name) where.event_name = event_name;
   if (date) where.date = new Date(date as string);
-  if (trackId) where.tracks = { some: { id: parseInt(trackId as string) } };
-  if (speakerId)
-    where.speakers = { some: { id: parseInt(speakerId as string) } };
+  if (track_id)
+    where.tracks = {
+      some: {
+        track_id: parseInt(track_id as string),
+      },
+    };
+  if (speaker_id)
+    where.speakers = {
+      some: {
+        speaker_id: parseInt(speaker_id as string),
+      },
+    };
 
-  const sessions = await prisma.session.findMany({
-    where,
-    include: {
-      tracks: true,
-      speakers: true,
-      subSessions: true,
-    },
-  });
-  res.json(sessions);
+  try {
+    const sessions = await prisma.session.findMany({
+      where,
+      include: {
+        tracks: {
+          include: {
+            track: true,
+          },
+        },
+        speakers: {
+          include: {
+            speaker: true,
+          },
+        },
+        subSessions: true,
+      },
+    });
+    res.json(sessions);
+  } catch (error) {
+    console.error("Session fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch sessions",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 });
 
 /**
@@ -159,48 +205,71 @@ app.get("/sessions", async (req: Request, res: Response) => {
  * @returns {SubSession} - The newly created sub-session
  */
 app.post("/sub_sessions", async (req: Request, res: Response) => {
-  const { parentSessionId, name, description, speakerIds } = req.body;
+  const { parent_session_id, name, description, speakerIds } = req.body;
 
   try {
     const subSession = await prisma.subSession.create({
       data: {
-        parentSessionId,
+        parent_session_id,
         name,
         description,
         speakers: {
-          connect: speakerIds?.map((id: number) => ({ id })) || [],
+          create:
+            speakerIds?.map((id: number) => ({
+              speaker: { connect: { id } },
+            })) || [],
         },
       },
       include: {
-        speakers: true,
+        speakers: {
+          include: {
+            speaker: true,
+          },
+        },
       },
     });
     res.json(subSession);
   } catch (error) {
-    res.status(400).json({ error: "Failed to create sub-session" });
+    console.error("Sub-session creation error:", error);
+    res.status(400).json({
+      error: "Failed to create sub-session",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
 /**
  * Endpoint to fetch all sub-sessions for a parent session
- * @param {string} parentSessionId - The ID of the parent session
+ * @param {string} parent_session_id - The ID of the parent session
  * @returns {SubSession[]} - All sub-sessions for the parent session
  */
 app.get("/sub_sessions", async (req: Request, res: Response) => {
-  const { parentSessionId } = req.query;
+  const { parent_session_id } = req.query;
   const where: any = {};
 
-  if (parentSessionId) {
-    where.parentSessionId = parseInt(parentSessionId as string);
+  if (parent_session_id) {
+    where.parent_session_id = parseInt(parent_session_id as string);
   }
 
-  const subSessions = await prisma.subSession.findMany({
-    where,
-    include: {
-      speakers: true,
-    },
-  });
-  res.json(subSessions);
+  try {
+    const subSessions = await prisma.subSession.findMany({
+      where,
+      include: {
+        speakers: {
+          include: {
+            speaker: true,
+          },
+        },
+      },
+    });
+    res.json(subSessions);
+  } catch (error) {
+    console.error("Sub-session fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch sub-sessions",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 });
 
 const port = process.env.PORT || 3000;
@@ -208,5 +277,7 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 Server ready at: http://localhost:${port}`);
 });
+
+export default app;
 
 module.exports = app;

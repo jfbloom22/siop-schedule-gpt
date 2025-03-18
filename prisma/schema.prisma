@@ -9,49 +9,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Track {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique @db.VarChar(255)
-  sessions Session[] @relation("SessionToTrack")
+model SessionSpeaker {
+  session    Session @relation(fields: [session_id], references: [id])
+  session_id Int
+  speaker    Speaker @relation(fields: [speaker_id], references: [id])
+  speaker_id Int
 
-  @@map("tracks")
+  @@id([session_id, speaker_id])
+  @@map("session_speakers")
 }
 
-model Speaker {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique @db.VarChar(255)
-  sessions    Session[]    @relation("SessionToSpeaker")
-  subSessions SubSession[] @relation("SubSessionToSpeaker")
+model SessionTrack {
+  session    Session @relation(fields: [session_id], references: [id])
+  session_id Int
+  track      Track   @relation(fields: [track_id], references: [id])
+  track_id   Int
 
-  @@map("speakers")
+  @@id([session_id, track_id])
+  @@map("session_tracks")
 }
 
 model Session {
-  id          Int          @id @default(autoincrement())
-  name        String       @db.VarChar(255)
-  startTime   DateTime     @db.Time
-  endTime     DateTime     @db.Time
-  date        DateTime     @db.Date
-  location    String?      @db.VarChar(255)
-  description String?      @db.Text
-  sessionId   String?      @db.VarChar(50)
-  isVirtual   Boolean      @default(false)
-  eventName   String?      @db.VarChar(255)
-  timezone    String?      @db.VarChar(50)
-  tracks      Track[]      @relation("SessionToTrack")
-  speakers    Speaker[]    @relation("SessionToSpeaker")
+  id          Int              @id @default(autoincrement())
+  name        String           @db.VarChar(255)
+  start_time  DateTime         @db.Time()
+  end_time    DateTime         @db.Time()
+  date        DateTime         @db.Date()
+  location    String?          @db.VarChar(255)
+  description String?          @db.Text
+  session_id  String?          @db.VarChar(50)
+  is_virtual  Boolean          @default(false)
+  event_name  String?          @db.VarChar(255)
+  timezone    String?          @db.VarChar(50)
+  speakers    SessionSpeaker[]
+  tracks      SessionTrack[]
   subSessions SubSession[]
 
   @@map("sessions")
 }
 
+model Speaker {
+  id                 Int                 @id @default(autoincrement())
+  name               String              @db.VarChar(255)
+  sessions           SessionSpeaker[]
+  subSessionspeakers SubSessionSpeaker[]
+
+  @@map("speakers")
+}
+
+model SubSessionSpeaker {
+  sub_session    SubSession @relation(fields: [sub_session_id], references: [id])
+  sub_session_id Int
+  speaker        Speaker    @relation(fields: [speaker_id], references: [id])
+  speaker_id     Int
+
+  @@id([sub_session_id, speaker_id])
+  @@map("sub_session_speakers")
+}
+
 model SubSession {
-  id              Int       @id @default(autoincrement())
-  parentSession   Session   @relation(fields: [parentSessionId], references: [id])
-  parentSessionId Int
-  name            String    @db.VarChar(255)
-  description     String?   @db.Text
-  speakers        Speaker[] @relation("SubSessionToSpeaker")
+  id                Int                 @id @default(autoincrement())
+  parent_session_id Int?
+  parentSession     Session?            @relation(fields: [parent_session_id], references: [id])
+  name              String              @db.VarChar(255)
+  description       String?             @db.Text
+  speakers          SubSessionSpeaker[]
 
   @@map("sub_sessions")
+}
+
+model Track {
+  id       Int            @id @default(autoincrement())
+  name     String         @db.VarChar(255)
+  sessions SessionTrack[]
+
+  @@map("tracks")
 }
