@@ -22,7 +22,7 @@ paths:
         - name: date
           in: query
           description: Filter by date (YYYY-MM-DD format)
-          required: false
+          required: true
           schema:
             type: string
             format: date
@@ -38,6 +38,12 @@ paths:
           required: false
           schema:
             type: integer
+        - name: search
+          in: query
+          description: Search text in session name and description
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A list of filtered sessions

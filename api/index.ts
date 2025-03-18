@@ -151,10 +151,11 @@ app.post("/sessions", async (req: Request, res: Response) => {
  * @param {string} date - Filter by date
  * @param {string} track_id - Filter by track ID
  * @param {string} speaker_id - Filter by speaker ID
+ * @param {string} search - Search text in session name and description
  * @returns {Session[]} - Filtered sessions
  */
 app.get("/sessions", async (req: Request, res: Response) => {
-  const { event_name, date, track_id, speaker_id } = req.query;
+  const { event_name, date, track_id, speaker_id, search } = req.query;
   const where: any = {};
 
   if (event_name) where.event_name = event_name;
@@ -171,6 +172,12 @@ app.get("/sessions", async (req: Request, res: Response) => {
         speaker_id: parseInt(speaker_id as string),
       },
     };
+  if (search) {
+    where.OR = [
+      { name: { contains: search as string, mode: "insensitive" } },
+      { description: { contains: search as string, mode: "insensitive" } },
+    ];
+  }
 
   try {
     const sessions = await prisma.session.findMany({
