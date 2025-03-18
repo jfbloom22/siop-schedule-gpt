@@ -176,25 +176,25 @@ app.get("/sessions", async (req: Request, res: Response) => {
     const sessions = await prisma.session.findMany({
       where,
       select: {
-        id: true,
+        id: false,
         name: true,
         start_time: true,
         end_time: true,
         date: true,
-        location: true,
-        session_id: true,
-        is_virtual: true,
+        location: false,
+        session_id: false,
+        is_virtual: false,
         event_name: false,
-        timezone: true,
-        session_type: true,
+        timezone: false,
+        session_type: false,
         tracks: {
           select: {
-            track: true,
+            track: false,
           },
         },
         speakers: {
           select: {
-            speaker: true,
+            speaker: false,
           },
         },
         subSessions: false,
