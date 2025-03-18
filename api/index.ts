@@ -20,7 +20,11 @@ app.post("/tracks", async (req: Request, res: Response) => {
     });
     res.json(track);
   } catch (error) {
-    res.status(400).json({ error: "Failed to create track" });
+    console.error("Track creation error:", error);
+    res.status(400).json({
+      error: "Failed to create track",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -29,8 +33,16 @@ app.post("/tracks", async (req: Request, res: Response) => {
  * @returns {Track[]} - All tracks
  */
 app.get("/tracks", async (req: Request, res: Response) => {
-  const tracks = await prisma.track.findMany();
-  res.json(tracks);
+  try {
+    const tracks = await prisma.track.findMany();
+    res.json(tracks);
+  } catch (error) {
+    console.error("Track fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch tracks",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 });
 
 /**
