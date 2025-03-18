@@ -11,39 +11,39 @@ datasource db {
 
 model Track {
   id       Int       @id @default(autoincrement())
-  name     String    @unique
+  name     String    @unique @db.VarChar(255)
   sessions Session[] @relation("SessionToTrack")
 }
 
 model Speaker {
-  id           Int           @id @default(autoincrement()) 
-  name         String        @unique
-  sessions     Session[]     @relation("SessionToSpeaker")
-  subSessions  SubSession[]  @relation("SubSessionToSpeaker")
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(255)
+  sessions    Session[]    @relation("SessionToSpeaker")
+  subSessions SubSession[] @relation("SubSessionToSpeaker")
 }
 
 model Session {
-  id              Int           @id @default(autoincrement())
-  name            String
-  startTime       DateTime
-  endTime         DateTime  
-  date            DateTime
-  location        String?
-  description     String?
-  sessionId       String?       @db.VarChar(50)
-  isVirtual       Boolean       @default(false)
-  eventName       String?
-  timezone        String?       @db.VarChar(50)
-  tracks          Track[]       @relation("SessionToTrack")
-  speakers        Speaker[]     @relation("SessionToSpeaker")
-  subSessions     SubSession[]
+  id          Int          @id @default(autoincrement())
+  name        String       @db.VarChar(255)
+  startTime   DateTime     @db.Time
+  endTime     DateTime     @db.Time
+  date        DateTime     @db.Date
+  location    String?      @db.VarChar(255)
+  description String?      @db.Text
+  sessionId   String?      @db.VarChar(50)
+  isVirtual   Boolean      @default(false)
+  eventName   String?      @db.VarChar(255)
+  timezone    String?      @db.VarChar(50)
+  tracks      Track[]      @relation("SessionToTrack")
+  speakers    Speaker[]    @relation("SessionToSpeaker")
+  subSessions SubSession[]
 }
 
 model SubSession {
-  id               Int       @id @default(autoincrement())
-  parentSession    Session   @relation(fields: [parentSessionId], references: [id])
-  parentSessionId  Int
-  name             String
-  description      String?
-  speakers         Speaker[] @relation("SubSessionToSpeaker")
+  id              Int       @id @default(autoincrement())
+  parentSession   Session   @relation(fields: [parentSessionId], references: [id])
+  parentSessionId Int
+  name            String    @db.VarChar(255)
+  description     String?   @db.Text
+  speakers        Speaker[] @relation("SubSessionToSpeaker")
 }
