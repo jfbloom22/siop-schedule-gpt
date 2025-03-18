@@ -158,7 +158,7 @@ app.get("/sessions", async (req: Request, res: Response) => {
  * @param {Object} subSessionData - The sub-session data
  * @returns {SubSession} - The newly created sub-session
  */
-app.post("/sub-sessions", async (req: Request, res: Response) => {
+app.post("/sub_sessions", async (req: Request, res: Response) => {
   const { parentSessionId, name, description, speakerIds } = req.body;
 
   try {
@@ -186,7 +186,7 @@ app.post("/sub-sessions", async (req: Request, res: Response) => {
  * @param {string} parentSessionId - The ID of the parent session
  * @returns {SubSession[]} - All sub-sessions for the parent session
  */
-app.get("/sub-sessions", async (req: Request, res: Response) => {
+app.get("/sub_sessions", async (req: Request, res: Response) => {
   const { parentSessionId } = req.query;
   const where: any = {};
 

@@ -13,6 +13,8 @@ model Track {
   id       Int       @id @default(autoincrement())
   name     String    @unique @db.VarChar(255)
   sessions Session[] @relation("SessionToTrack")
+
+  @@map("tracks")
 }
 
 model Speaker {
@@ -20,6 +22,8 @@ model Speaker {
   name        String       @unique @db.VarChar(255)
   sessions    Session[]    @relation("SessionToSpeaker")
   subSessions SubSession[] @relation("SubSessionToSpeaker")
+
+  @@map("speakers")
 }
 
 model Session {
@@ -37,6 +41,8 @@ model Session {
   tracks      Track[]      @relation("SessionToTrack")
   speakers    Speaker[]    @relation("SessionToSpeaker")
   subSessions SubSession[]
+
+  @@map("sessions")
 }
 
 model SubSession {
@@ -46,4 +52,6 @@ model SubSession {
   name            String    @db.VarChar(255)
   description     String?   @db.Text
   speakers        Speaker[] @relation("SubSessionToSpeaker")
+
+  @@map("sub_sessions")
 }

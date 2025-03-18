@@ -4,7 +4,7 @@ info:
   title: Conference Sessions API
   description: API to fetch conference sessions with optional filters
 servers:
-  - url: https://api.conference.com/v1
+  - url: https://siop-schedule-gpt.vercel.app
 paths:
   /sessions:
     get:
