@@ -9,60 +9,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(uuid())
-  clerkId   String   @unique
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  stores    Store[]
+model Track {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  sessions Session[] @relation("SessionToTrack")
 }
 
-model Store {
-  id        String      @id @default(uuid())
-  name      String
-  address   String?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  userId    String
-  user      User        @relation(fields: [userId], references: [id])
-  inventory Inventory[]
-  sales     Sale[]
+model Speaker {
+  id           Int           @id @default(autoincrement()) 
+  name         String        @unique
+  sessions     Session[]     @relation("SessionToSpeaker")
+  subSessions  SubSession[]  @relation("SubSessionToSpeaker")
 }
 
-model Product {
-  id        String      @id @default(uuid())
-  name      String
-  description String?
-  type      String
-  meta      Json?
-  price     Float       @default(0)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  sales     Sale[]
-  inventory Inventory[]
+model Session {
+  id              Int           @id @default(autoincrement())
+  name            String
+  startTime       DateTime
+  endTime         DateTime  
+  date            DateTime
+  location        String?
+  description     String?
+  sessionId       String?       @db.VarChar(50)
+  isVirtual       Boolean       @default(false)
+  eventName       String?
+  timezone        String?       @db.VarChar(50)
+  tracks          Track[]       @relation("SessionToTrack")
+  speakers        Speaker[]     @relation("SessionToSpeaker")
+  subSessions     SubSession[]
 }
 
-model Inventory {
-  id        String   @id @default(uuid())
-  storeId   String
-  productId String
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  store     Store    @relation(fields: [storeId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
-}
-
-model Sale {
-  id           String   @id @default(uuid())
-  productId    String
-  product      Product  @relation(fields: [productId], references: [id])
-  storeId      String
-  store        Store    @relation(fields: [storeId], references: [id])
-  quantitySold Int
-  totalPrice   Float
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model SubSession {
+  id               Int       @id @default(autoincrement())
+  parentSession    Session   @relation(fields: [parentSessionId], references: [id])
+  parentSessionId  Int
+  name             String
+  description      String?
+  speakers         Speaker[] @relation("SubSessionToSpeaker")
 }

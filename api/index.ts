@@ -1,350 +1,200 @@
-import express, { Request as ExpressRequest, Response } from "express";
+import express, { Request, Response } from "express";
 import { prisma } from "../utils/db";
-import { authenticateToken } from "../utils/auth";
 import morgan from "morgan";
 
 const app = express();
-interface Request extends ExpressRequest {
-  user?: {
-    id: string;
-  };
-}
 
 app.use(express.json());
 app.use(morgan("dev"));
 
 /**
- * Endpoint to create a new store
- * @param {string} name - The name of the store
- * @param {string} address - The address of the store
- * @returns {Store} - The newly created store
+ * Endpoint to create a new track
+ * @param {string} name - The name of the track
+ * @returns {Track} - The newly created track
  */
-app.post(
-  "/stores",
-  [authenticateToken],
-  async (req: Request, res: Response) => {
-    const { name, address } = req.body;
-    if (!req.user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const userId = req.user.id;
-    try {
-      const store = await prisma.store.create({
-        data: {
-          name,
-          userId,
-          address
-        },
-      });
-      res.json(store);
-    } catch (error) {
-      res.status(400).json({ error: "Failed to create store" });
-    }
+app.post("/tracks", async (req: Request, res: Response) => {
+  const { name } = req.body;
+  try {
+    const track = await prisma.track.create({
+      data: { name },
+    });
+    res.json(track);
+  } catch (error) {
+    res.status(400).json({ error: "Failed to create track" });
   }
-);
-
-/**
- * Endpoint to fetch all stores beloging to the user
- * @param {string} userId - The id of the user
- * @returns {Store[]} - The stores beloging to the user
- */
-app.get("/stores", [authenticateToken], async (req: Request, res: Response) => {
-  if (!req.user) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const userId = req.user.id;
-  const stores = await prisma.store.findMany({ where: { userId } });
-  res.json(stores);
 });
 
 /**
- * Endpoint to fetch a store by id and all it's inventory and products
- * @param {string} id - The id of the store
- * @returns {Store} - The store with it's inventory and products
+ * Endpoint to fetch all tracks
+ * @returns {Track[]} - All tracks
  */
-app.get(
-  "/stores/:id",
-  [authenticateToken],
-  async (req: Request, res: Response) => {
-    if (!req.user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const { id } = req.params;
-    const store = await prisma.store.findUnique({
-      where: { id, userId: req.user.id },
-      include: { 
-        inventory: { 
-          include: { product: true } 
-        }
+app.get("/tracks", async (req: Request, res: Response) => {
+  const tracks = await prisma.track.findMany();
+  res.json(tracks);
+});
+
+/**
+ * Endpoint to create a new speaker
+ * @param {string} name - The name of the speaker
+ * @returns {Speaker} - The newly created speaker
+ */
+app.post("/speakers", async (req: Request, res: Response) => {
+  const { name } = req.body;
+  try {
+    const speaker = await prisma.speaker.create({
+      data: { name },
+    });
+    res.json(speaker);
+  } catch (error) {
+    res.status(400).json({ error: "Failed to create speaker" });
+  }
+});
+
+/**
+ * Endpoint to fetch all speakers
+ * @returns {Speaker[]} - All speakers
+ */
+app.get("/speakers", async (req: Request, res: Response) => {
+  const speakers = await prisma.speaker.findMany();
+  res.json(speakers);
+});
+
+/**
+ * Endpoint to create a new session
+ * @param {Object} sessionData - The session data
+ * @returns {Session} - The newly created session
+ */
+app.post("/sessions", async (req: Request, res: Response) => {
+  const {
+    name,
+    startTime,
+    endTime,
+    date,
+    location,
+    description,
+    sessionId,
+    isVirtual,
+    eventName,
+    timezone,
+    trackIds,
+    speakerIds,
+  } = req.body;
+
+  try {
+    const session = await prisma.session.create({
+      data: {
+        name,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        date: new Date(date),
+        location,
+        description,
+        sessionId,
+        isVirtual,
+        eventName,
+        timezone,
+        tracks: {
+          connect: trackIds?.map((id: number) => ({ id })) || [],
+        },
+        speakers: {
+          connect: speakerIds?.map((id: number) => ({ id })) || [],
+        },
+      },
+      include: {
+        tracks: true,
+        speakers: true,
+        subSessions: true,
       },
     });
-    res.json(store);
+    res.json(session);
+  } catch (error) {
+    res.status(400).json({ error: "Failed to create session" });
   }
-);
+});
 
 /**
- * Endpoint to delete a store by id
- * @param {string} id - The id of the store
- * @returns {Store} - The store that was deleted
+ * Endpoint to fetch all sessions with optional filters
+ * @param {string} eventName - Filter by event name
+ * @param {string} date - Filter by date
+ * @param {string} trackId - Filter by track ID
+ * @param {string} speakerId - Filter by speaker ID
+ * @returns {Session[]} - Filtered sessions
  */
-app.delete(
-  "/stores/:id",
-  [authenticateToken],
-  async (req: Request, res: Response) => {
-    if (!req.user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const { id } = req.params;
-    const store = await prisma.store.delete({
-      where: { id, userId: req.user.id },
-    });
-    res.json(store);
-  }
-);
+app.get("/sessions", async (req: Request, res: Response) => {
+  const { eventName, date, trackId, speakerId } = req.query;
+  const where: any = {};
 
-/**
- * Endpoint to update a store
- * @param {string} id - The id of the store
- * @param {string} name - The name of the store
- * @param {string} address - The address of the store
- * @returns {Store} - The store that was updated
- */
-app.patch(
-  "/stores/:id",
-  [authenticateToken],
-  async (req: Request, res: Response) => {
-    if (!req.user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const { id } = req.params;
-    const { name, address } = req.body;
-    const store = await prisma.store.update({
-      where: { id, userId: req.user.id },
-      data: { name, address },
-    });
-    res.json(store);
-  }
-);
+  if (eventName) where.eventName = eventName;
+  if (date) where.date = new Date(date as string);
+  if (trackId) where.tracks = { some: { id: parseInt(trackId as string) } };
+  if (speakerId)
+    where.speakers = { some: { id: parseInt(speakerId as string) } };
 
-/**
- * Endpoint to create a new product
- * @param {string} name - The name of the product
- * @param {string} type - The type of the product
- * @param {string} meta - Any additional metadata about the product
- * @param {number} price - The price of the product
- * @returns {Product} - The newly created product
- */
-app.post(
-  "/products",
-  [authenticateToken],
-  async (req: Request, res: Response) => {
-    if (!req.user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const { name, type, meta, price } =
-      req.body;
-    try {
-      const product = await prisma.product.create({
-        data: {
-          name,
-          type,
-          meta,
-          price,
-        },
-      });
-      res.json(product);
-    } catch (error) {
-      res.status(400).json({ error: "Failed to create product" });
-    }
-  }
-);
-
-/**
- * Endpoint to update a product
- * @param {string} id - The id of the product
- * @param {string} name - The name of the product
- * @param {string} type - The type of the product
- * @param {string} meta - Any additional metadata about the product
- * @param {number} price - The price of the product
- * @returns {Product} - The product that was updated
- */
-app.patch(
-  "/products/:id",
-  [authenticateToken],
-  async (req: Request, res: Response) => {
-    if (!req.user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const { id } = req.params;
-    const { name, type, meta, price } =
-      req.body;
-    const product = await prisma.product.update({
-      where: { id },
-      data: { name, type, meta, price },
-    });
-    res.json(product);
-  }
-);
-
-/**
- * Endpoint to delete a product by id
- * @param {string} id - The id of the product
- * @returns {Product} - The product that was deleted
- */
-app.delete(
-  "/products/:id",
-  [authenticateToken],
-  async (req: Request, res: Response) => {
-    if (!req.user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const { id } = req.params;
-    const product = await prisma.product.delete({
-      where: { id },
-    });
-    res.json(product);
-  }
-);
-
-/**
- * Endpoint to create a new sale
- * @param {string} productId - The id of the product
- * @param {number} quantitySold - The quantity sold
- * @param {string} storeId - The id of the store
- * @param {number} totalPrice - The total price of the sale
- * @returns {Sale} - The newly created sale
- */
-app.post("/sales", [authenticateToken], async (req: Request, res: Response) => {
-  const { productId, quantitySold, storeId, totalPrice } = req.body;
-  const sale = await prisma.sale.create({
-    data: { 
-      productId,
-      storeId,
-      quantitySold,
-      totalPrice
+  const sessions = await prisma.session.findMany({
+    where,
+    include: {
+      tracks: true,
+      speakers: true,
+      subSessions: true,
     },
   });
-  res.json(sale);
+  res.json(sessions);
 });
 
 /**
- * Endpoint to update a sale
- * @param {string} id - The id of the sale
- * @param {number} quantitySold - The quantity sold
- * @param {string} storeId - The id of the store
- * @param {number} totalPrice - The total price of the sale
- * @returns {Sale} - The sale that was updated
+ * Endpoint to create a new sub-session
+ * @param {Object} subSessionData - The sub-session data
+ * @returns {SubSession} - The newly created sub-session
  */
-app.patch("/sales/:id", [authenticateToken], async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { quantitySold, totalPrice, storeId, productId } = req.body;
-  const sale = await prisma.sale.update({
-    where: { id },
-    data: { quantitySold, totalPrice, storeId, productId },
-  });
-  res.json(sale);
-});
+app.post("/sub-sessions", async (req: Request, res: Response) => {
+  const { parentSessionId, name, description, speakerIds } = req.body;
 
-/**
- * Endpoint to delete a sale by id
- * @param {string} id - The id of the sale
- * @returns {Sale} - The sale that was deleted
- */
-app.delete("/sales/:id", [authenticateToken], async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const sale = await prisma.sale.delete({
-    where: { id },
-  });
-  res.json(sale);
-});
-
-/**
- * Endpoint to fetch sales. optional filters for within a date range and for specific stores
- * @param {string} storeId - The id of the store
- * @param {string} startDate - The start date of the date range
- * @param {string} endDate - The end date of the date range
- * @returns {Sale[]} - The sales within the date range and for the store or stores
- */
-app.get("/sales", [authenticateToken], async (req: Request, res: Response) => {
-  const { storeId, startDate, endDate } = req.query;
-  const where: { storeId: string, createdAt?: { gte: string, lte: string } } = { storeId: storeId as string };
-  if (startDate && endDate && typeof startDate === 'string' && typeof endDate === 'string') {
-    let endDateTime = new Date(endDate);
-    if (!endDate.includes('T')) {
-      endDateTime.setHours(23, 59, 59, 999);
-    }
-    where.createdAt = { 
-      gte: new Date(startDate).toISOString(), 
-      lte: endDateTime.toISOString() 
-    };
+  try {
+    const subSession = await prisma.subSession.create({
+      data: {
+        parentSessionId,
+        name,
+        description,
+        speakers: {
+          connect: speakerIds?.map((id: number) => ({ id })) || [],
+        },
+      },
+      include: {
+        speakers: true,
+      },
+    });
+    res.json(subSession);
+  } catch (error) {
+    res.status(400).json({ error: "Failed to create sub-session" });
   }
-  const sales = await prisma.sale.findMany({ where });
-  res.json(sales);
 });
 
 /**
- * Endpoint to create a new inventory
- * @param {string} productId - The id of the product
- * @param {string} storeId - The id of the store
- * @param {number} quantity - The quantity of the product
- * @returns {Inventory} - The newly created inventory
+ * Endpoint to fetch all sub-sessions for a parent session
+ * @param {string} parentSessionId - The ID of the parent session
+ * @returns {SubSession[]} - All sub-sessions for the parent session
  */
-app.post("/inventory", [authenticateToken], async (req: Request, res: Response) => {
-  const { productId, storeId, quantity } = req.body;
-  const inventory = await prisma.inventory.create({
-    data: { productId, storeId, quantity },
+app.get("/sub-sessions", async (req: Request, res: Response) => {
+  const { parentSessionId } = req.query;
+  const where: any = {};
+
+  if (parentSessionId) {
+    where.parentSessionId = parseInt(parentSessionId as string);
+  }
+
+  const subSessions = await prisma.subSession.findMany({
+    where,
+    include: {
+      speakers: true,
+    },
   });
-  res.json(inventory);
+  res.json(subSessions);
 });
-
-/**
- * Endpoint to update an inventory
- * @param {string} id - The id of the inventory
- * @param {string} productId - The id of the product
- * @param {string} storeId - The id of the store
- * @param {number} quantity - The quantity of the product
- * @returns {Inventory} - The inventory that was updated
- */
-app.patch("/inventory/:id", [authenticateToken], async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { productId, storeId, quantity } = req.body;
-  const inventory = await prisma.inventory.update({
-    where: { id },
-    data: { productId, storeId, quantity },
-  });
-  res.json(inventory);
-});
-
-/**
- * Endpoint to delete an inventory by id
- * @param {string} id - The id of the inventory
- * @returns {Inventory} - The inventory that was deleted
- */
-app.delete("/inventory/:id", [authenticateToken], async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const inventory = await prisma.inventory.delete({
-    where: { id },
-  });
-  res.json(inventory);
-});
-
-
-
 
 const port = process.env.PORT || 3000;
 
-  app.listen(port, () => {
-    console.log(`
-      🚀 Server ready at: http://localhost:${port}
-      ⭐️ See sample requests: http://pris.ly/e/ts/rest-express#3-using-the-rest-api`);
-  });
+app.listen(port, () => {
+  console.log(`🚀 Server ready at: http://localhost:${port}`);
+});
 
 module.exports = app;
